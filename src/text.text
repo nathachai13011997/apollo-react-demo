@@ -1,0 +1,113 @@
+import React, { useEffect, useState } from 'react';
+import { useQuery, useMutation } from '@apollo/client';
+import { ADD_POST, GET_ALL_POST, DELETE_POST } from './Query';
+import PostForm from './PostForm';
+import PostList from './PostList'
+import Navbar from './Navbar'
+
+
+const Post = props => {
+    const [addPost] = useMutation(ADD_POST)
+    const [post, setPost] = useState([])
+    const [pages, setPage] = useState(1)
+    const [totalPage, setTotalPage] = useState([])
+
+    const [deletePost] = useMutation(DELETE_POST)
+
+    //Modal
+    const { loading, data = {} } = useQuery(GET_ALL_POST, {
+        variables: {
+            page: pages,
+            limit: 10
+        }
+    });
+    useEffect(() => {
+
+        if (!loading && data) {
+
+            const currentPage = Math.floor(data.posts.meta.totalCount / 10);
+            setTotalPage(new Array(currentPage).fill());
+
+            setPost(data.posts.data);
+        }
+    }, [loading, data, pages])
+
+console.log(data)
+
+    // if (loading) return 'Loading...'               //your component's return should always be after all hook calls//
+    // if (error) return Error! ${error.message}
+
+    const addPostHandler = post => {
+        return new Promise((resolve) => {
+            const PostInput = {
+                title: post.title,
+                body: post.body
+            }
+            // console.log('#####')
+            // console.log(PostInput)
+            addPost({ variables: PostInput }).then(res => {
+
+                alert(JSON.stringify(res))
+
+                //resolve(res);
+            })
+                .catch(e => {
+                    console.log(e.message);
+                })
+
+
+        })
+        // console.log(JSON.stringify(post))
+    }
+
+    const RemovePost = postId => {
+        // console.log(parseInt(postId));
+        const idPost = parseInt(postId);
+        const deletePostInput = {
+            id: idPost
+        }
+        console.log('#################');
+        console.log(idPost);
+        deletePost({ variables: deletePostInput }).then(res => {
+            alert(JSON.stringify(res))
+
+            // resolve(res);
+        })
+    }
+    const pageActive = pageNo => {
+        setPage(pageNo)
+        console.log(pageNo)
+    }
+
+    const EditPost = postId => {
+        console.log(parseInt(postId));
+        props.history.push('/FormEdit/' + postId);
+    }
+
+    return <>
+
+        <div className="container">
+            <Navbar />
+            <section >
+                <h1 className="text-center">ADD</h1>
+                <PostForm onAddPost={addPostHandler} />
+            </section>
+            <section >
+
+                {/* <pre>{(JSON.stringify(totalPage))}</pre> */}
+                <PostList postDetail={post} onRemovePost={RemovePost} onEditPost={EditPost} />
+                <nav >
+                    <ul className="pagination">
+                        {totalPage.map((each, idx) => {
+                            const pageNo = idx + 1;
+                            return <li key={idx}>
+                                <button onClick={() => pageActive(pageNo)} className={`btn btn-sm btn-secondary page-item ${pageNo === pages ? " active" : ""}`}>{pageNo}</button>
+                                 | 
+                            </li>
+                        })}
+                    </ul>
+                </nav>
+            </section>
+        </div>
+    </>
+}
